@@ -7,20 +7,19 @@ namespace Tibia_Bot
 {
 	class Program
 	{
-		// Configuration settings
-		static int healthThreshold = 50; // Use health potion below 50% health
-		static int manaThreshold = 50; // Use mana potion below 50% mana
-									   // static int spellManaThreshold = 90; // Cast spell when mana is above 90%
+		// Coordinates and RGB values
+		static Point healthPotPos = new Point(520, 67);   // Health potion check
+		static Point healthSpellPos = new Point(667, 67); // Health spell check
+		static Point ringSlotPos = new Point(1430, 203);  // Ring slot check
+		static Point manaFullPos = new Point(936, 66);    // Full mana bar check
+		static Point eatFoodPos = new Point(1426, 230);   // Eat food check
+		static Point manaPotionPos = new Point(1149, 67); // Mana potion check
 
-		static Point healthBarPos = new Point(1813, 147);  // Full health bar position
-		static Point manaBarPos = new Point(1812, 161);    // Full mana bar position
-		static Point ringSlotPos = new Point(1768, 272);   // Ring slot when unequipped
-		static Point hungerIconPos = new Point(1760, 321); // Hunger icon when hungry
-
+		// Input flags
 		static bool useHealthPotions = true;
 		static bool useManaPotions = true;
-		static bool useHealingSpells = false;
-		static bool refillRing = false;
+		static bool useHealingSpells = true;
+		static bool refillRing = true;
 		static bool useFood = true;
 
 		// Input simulator for key presses
@@ -33,17 +32,17 @@ namespace Tibia_Bot
 			while (true)
 			{
 				// Log pixel colors for debugging during development
-				LogPixelColor("Health Bar", healthBarPos);
-				LogPixelColor("Mana Bar", manaBarPos);
+				LogPixelColor("Health Bar", healthPotPos);
+				LogPixelColor("Mana Bar", manaFullPos);
 				LogPixelColor("Ring Slot", ringSlotPos);
-				LogPixelColor("Hunger Icon", hungerIconPos);
+				LogPixelColor("Hunger Icon", eatFoodPos);
 
 				// Main loop to keep checking conditions and performing actions
 				if (useHealthPotions)
 					CheckHealthAndUsePotion();
 
 				if (useHealingSpells)
-					UseHealingSpell();
+					CheckHealthAndUseSpell();
 
 				if (useManaPotions)
 					CheckManaAndUsePotion();
@@ -62,7 +61,7 @@ namespace Tibia_Bot
 		// Check the health bar and use a potion if health is low
 		static void CheckHealthAndUsePotion()
 		{
-			Color healthColor = GetPixelColor(healthBarPos);
+			Color healthColor = GetPixelColor(healthPotPos);
 
 			// Skip action if we can't read the screen (RGB 0, 0, 0)
 			if (healthColor.R == 0 && healthColor.G == 0 && healthColor.B == 0)
@@ -71,51 +70,50 @@ namespace Tibia_Bot
 				return;
 			}
 
-			// Assuming red color means low health, check if RGB matches low health condition
-			if (healthColor.R < 200 && healthColor.G < 50 && healthColor.B < 50)  // Threshold for low health
+			// If health color is NOT RGB(0, 175, 0), use health potion
+			if (!(healthColor.R == 0 && healthColor.G == 175 && healthColor.B == 0))
 			{
 				inputSimulator.Keyboard.KeyPress(VirtualKeyCode.F1); // Simulate health potion key press (F1)
 				Console.WriteLine("Using health potion!");
 			}
 		}
 
-		// Use healing spell if health is low and mana is available
-		static void UseHealingSpell()
+		// Check the health bar and use a spell if health is low
+		static void CheckHealthAndUseSpell()
 		{
-			Color healthColor = GetPixelColor(healthBarPos);
-			Color manaColor = GetPixelColor(manaBarPos);
+			Color healthSpellColor = GetPixelColor(healthSpellPos);
 
 			// Skip action if we can't read the screen (RGB 0, 0, 0)
-			if ((healthColor.R == 0 && healthColor.G == 0 && healthColor.B == 0) || (manaColor.R == 0 && manaColor.G == 0 && manaColor.B == 0))
+			if (healthSpellColor.R == 0 && healthSpellColor.G == 0 && healthSpellColor.B == 0)
 			{
 				Console.WriteLine("Screen not readable, skipping healing spell.");
 				return;
 			}
 
-			// Check if health is low and mana is high enough
-			if (healthColor.R < 200 && manaColor.B > 200) // Low health and sufficient mana
+			// If health spell color is NOT RGB(0, 175, 0), use health spell
+			if (!(healthSpellColor.R == 0 && healthSpellColor.G == 175 && healthSpellColor.B == 0))
 			{
-				inputSimulator.Keyboard.KeyPress(VirtualKeyCode.F4); // Simulate healing spell key press (F4)
-				Console.WriteLine("Casting healing spell!");
+				inputSimulator.Keyboard.KeyPress(VirtualKeyCode.F4); // Simulate health spell key press (F4)
+				Console.WriteLine("Casting health spell!");
 			}
 		}
 
 		// Check the mana bar and use a mana potion if mana is low
 		static void CheckManaAndUsePotion()
 		{
-			Color manaColor = GetPixelColor(manaBarPos);
+			Color manaPotionColor = GetPixelColor(manaPotionPos);
 
 			// Skip action if we can't read the screen (RGB 0, 0, 0)
-			if (manaColor.R == 0 && manaColor.G == 0 && manaColor.B == 0)
+			if (manaPotionColor.R == 0 && manaPotionColor.G == 0 && manaPotionColor.B == 0)
 			{
 				Console.WriteLine("Screen not readable, skipping mana check.");
 				return;
 			}
 
-			// Assuming blue color means full mana, and darker blue means low mana
-			if (manaColor.B < 150)  // Threshold for low mana
+			// If mana potion color is NOT RGB(0, 56, 116), use mana potion
+			if (!(manaPotionColor.R == 0 && manaPotionColor.G == 56 && manaPotionColor.B == 116))
 			{
-				inputSimulator.Keyboard.KeyPress(VirtualKeyCode.F2); // Simulate mana potion key press (F3)
+				inputSimulator.Keyboard.KeyPress(VirtualKeyCode.F2); // Simulate mana potion key press (F2)
 				Console.WriteLine("Using mana potion!");
 			}
 		}
@@ -132,18 +130,38 @@ namespace Tibia_Bot
 				return;
 			}
 
-			// Assuming ring slot is empty if it's a specific gray color
-			if (ringColor.R == 54 && ringColor.G == 57 && ringColor.B == 60) // Ring unequipped
+			// If ring slot color is RGB(84, 86, 89), equip ring
+			if (ringColor.R == 84 && ringColor.G == 86 && ringColor.B == 89)
 			{
-				inputSimulator.Keyboard.KeyPress(VirtualKeyCode.F3); // Simulate ring refill key press (F3)
-				Console.WriteLine("Refilling ring!");
+				inputSimulator.Keyboard.KeyPress(VirtualKeyCode.F3); // Simulate ring equip key press (F3)
+				Console.WriteLine("Equipping ring!");
+			}
+		}
+
+		// Check mana status and cast spell if mana is full
+		static void CheckManaAndCastSpell()
+		{
+			Color manaFullColor = GetPixelColor(manaFullPos);
+
+			// Skip action if we can't read the screen (RGB 0, 0, 0)
+			if (manaFullColor.R == 0 && manaFullColor.G == 0 && manaFullColor.B == 0)
+			{
+				Console.WriteLine("Screen not readable, skipping mana cast.");
+				return;
+			}
+
+			// If mana full color is NOT RGB(46, 46, 46), cast a spell
+			if (!(manaFullColor.R == 46 && manaFullColor.G == 46 && manaFullColor.B == 46))
+			{
+				inputSimulator.Keyboard.KeyPress(VirtualKeyCode.F9); // Simulate mana spell key press (F9)
+				Console.WriteLine("Casting mana spell!");
 			}
 		}
 
 		// Check hunger icon and eat food if hungry
 		static void CheckHungerAndEatFood()
 		{
-			Color hungerColor = GetPixelColor(hungerIconPos);
+			Color hungerColor = GetPixelColor(eatFoodPos);
 
 			// Skip action if we can't read the screen (RGB 0, 0, 0)
 			if (hungerColor.R == 0 && hungerColor.G == 0 && hungerColor.B == 0)
@@ -152,8 +170,8 @@ namespace Tibia_Bot
 				return;
 			}
 
-			// Check if the hunger icon is visible (yellowish color)
-			if (hungerColor.R == 246 && hungerColor.G == 212 && hungerColor.B == 143) // Hungry
+			// If hunger icon color is RGB(243, 203, 128), eat food
+			if (hungerColor.R == 243 && hungerColor.G == 203 && hungerColor.B == 128)
 			{
 				inputSimulator.Keyboard.KeyPress(VirtualKeyCode.F10); // Simulate eating food key press (F10)
 				Console.WriteLine("Eating food!");
